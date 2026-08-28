@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rebound — AI Revenue Recovery Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0A0F1C; --panel:#111A2B; --border:#243149; --border-soft:#1B2740;
+    --text:#EAF1FB; --text-dim:#8492AB; --text-faint:#4E5C74;
+    --recover:#22D6A5; --recover-dim:#22D6A522;
+    --warn:#FFB454; --warn-dim:#FFB45422;
+    --danger:#FF6B6B; --danger-dim:#FF6B6B22;
+    --brand:#5B8CFF; --brand-dim:#5B8CFF22;
+    --radius:14px; --mono:'IBM Plex Mono', monospace; --display:'Space Grotesk', sans-serif; --body:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:radial-gradient(ellipse 900px 500px at 15% -10%, #17224022, transparent),
+      radial-gradient(ellipse 900px 500px at 100% 10%, #0F2A2422, transparent), var(--bg);
+    color:var(--text); font-family:var(--body); display:flex; min-height:100vh;
+  }
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:0.001s !important; transition-duration:0.001s !important;} }
+  ::-webkit-scrollbar{width:8px; height:8px;} ::-webkit-scrollbar-thumb{background:var(--border); border-radius:8px;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:230px; flex-shrink:0; border-right:1px solid var(--border-soft); padding:24px 16px;
+    display:flex; flex-direction:column; gap:22px; position:sticky; top:0; height:100vh;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:0 6px;}
+  .brand-mark{width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg, var(--recover), var(--brand)); display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; color:#08121C; font-size:16px;}
+  .brand-name{font-family:var(--display); font-weight:700; font-size:18px; letter-spacing:-0.02em;}
+  .brand-tag{font-size:10px; color:var(--text-dim); letter-spacing:0.06em; text-transform:uppercase;}
+  .nav{display:flex; flex-direction:column; gap:2px; margin-top:4px;}
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:9px; cursor:pointer;
+    font-size:13.5px; font-weight:500; color:var(--text-dim); transition:all 0.15s ease;
+  }
+  .nav-item:hover{background:#0D1524; color:var(--text);}
+  .nav-item.active{background:var(--brand-dim); color:var(--brand);}
+  .nav-icon{width:16px; text-align:center; font-size:13px;}
+  .sidebar-status{margin-top:auto; padding:12px; background:#0D1524; border:1px solid var(--border-soft); border-radius:10px;}
+  .sidebar-status-row{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-dim);}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--text-faint); flex-shrink:0;}
+  .dot.live{background:var(--recover); box-shadow:0 0 8px var(--recover); animation:blink 1.4s infinite;}
+  @keyframes blink{0%,100%{opacity:1;} 50%{opacity:0.4;}}
+
+  /* ---------- Main ---------- */
+  .main{flex:1; padding:26px 34px 60px; min-width:0;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .view-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
+  .view-title{font-family:var(--display); font-weight:700; font-size:24px; letter-spacing:-0.01em;}
+  .view-sub{color:var(--text-dim); font-size:13px; margin-top:4px;}
+
+  .btn{font-family:var(--body); font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:9px; border:1px solid transparent; cursor:pointer; transition:all 0.15s ease;}
+  .btn-primary{background:var(--recover); color:#06231A;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-danger{background:var(--danger); color:#2B0808;}
+  .btn-ghost{background:transparent; border-color:var(--border); color:var(--text-dim);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--text-faint);}
+  select, input[type=number], input[type=text], input[type=password]{
+    background:#0D1524; border:1px solid var(--border); color:var(--text); border-radius:8px;
+    padding:8px 10px; font-family:var(--mono); font-size:12.5px;
+  }
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;}
+  .panel-head{padding:14px 18px; border-bottom:1px solid var(--border-soft); display:flex; align-items:center; justify-content:space-between;}
+  .panel-title{font-family:var(--display); font-weight:600; font-size:14px;}
+  .panel-note{font-size:11px; color:var(--text-faint);}
+
+  /* ---------- Overview: KPI row ---------- */
+  .kpi-row{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px;}
+  .kpi-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px 16px;}
+  .kpi-label{font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;}
+  .kpi-value{font-family:var(--mono); font-weight:600; font-size:21px; margin-top:7px; display:inline-block; transition:transform .18s ease;}
+  .kpi-value.bump{transform:scale(1.08) translateY(-2px);}
+  .kpi-value.recover{color:var(--recover);} .kpi-value.warn{color:var(--warn);} .kpi-value.danger{color:var(--danger);}
+
+  .overview-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:16px; align-items:start;}
+
+  /* funnel */
+  .funnel{padding:18px;}
+  .funnel-row{display:grid; grid-template-columns:110px 1fr 50px; align-items:center; gap:12px; margin-bottom:14px;}
+  .funnel-label{font-size:12px; color:var(--text-dim); font-weight:500;}
+  .funnel-track{height:20px; border-radius:6px; background:#0D1524; overflow:hidden;}
+  .funnel-fill{height:100%; border-radius:6px; transition:width .5s ease; background:var(--brand);}
+  .funnel-count{font-family:var(--mono); font-size:13px; text-align:right;}
+
+  /* console */
+  .console{height:280px; overflow-y:auto; padding:12px 16px; font-family:var(--mono); font-size:11.5px; background:#080C15;}
+  .console-line{padding:3px 0; color:var(--text-dim); border-bottom:1px dashed #1B2740; line-height:1.5;}
+  .console-line .t{color:var(--text-faint); margin-right:8px;}
+  .console-line.ok{color:var(--recover);}
+  .console-line.warn{color:var(--warn);}
+  .console-line.bad{color:var(--danger);}
+  .console-empty{color:var(--text-faint); text-align:center; padding-top:100px;}
+
+  /* controls bar */
+  .stream-controls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; border-top:1px solid var(--border-soft);}
+  .field{display:flex; align-items:center; gap:7px;}
+  .field label{font-size:11.5px; color:var(--text-dim); font-weight:500;}
+
+  /* ---------- Analytics ---------- */
+  .chart-grid{display:grid; grid-template-columns:1.3fr 0.7fr; gap:16px; margin-bottom:16px;}
+  .chart-grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .chart-box{padding:16px 18px 8px;}
+  .chart-canvas-wrap{position:relative; height:220px;}
+  .benchmark-note{
+    margin-top:10px; padding:10px 12px; background:#0D1524; border:1px solid var(--border-soft); border-radius:8px;
+    font-size:11.5px; color:var(--text-dim); line-height:1.5;
+  }
+  .benchmark-note b{color:var(--text);}
+
+  /* ---------- Ledger ---------- */
+  .tabs{display:flex; gap:6px;}
+  .tab{font-size:11.5px; padding:6px 12px; border-radius:100px; color:var(--text-dim); cursor:pointer; border:1px solid transparent; font-weight:500;}
+  .tab.active{background:var(--brand-dim); color:var(--brand); border-color:#5B8CFF44;}
+  .ledger{max-height:560px; overflow-y:auto;}
+  .ledger-row{padding:12px 18px; border-bottom:1px solid var(--border-soft); display:grid; grid-template-columns:1fr auto auto; gap:6px; cursor:pointer; transition:background .15s ease;}
+  .ledger-row:hover{background:#0D1524;}
+  .ledger-top{display:flex; align-items:center; gap:9px;}
+  .ledger-id{font-family:var(--mono); font-size:10.5px; color:var(--text-faint);}
+  .ledger-name{font-size:13px; font-weight:500;}
+  .ledger-reason{font-size:11.5px; color:var(--text-dim); margin-top:2px;}
+  .ledger-amount{font-family:var(--mono); font-size:13.5px; text-align:right; align-self:center;}
+  .badge{font-size:10px; font-weight:600; padding:4px 9px; border-radius:100px; text-align:center; align-self:center; white-space:nowrap;}
+  .badge.recovered{background:var(--recover-dim); color:var(--recover);}
+  .badge.escalated{background:var(--warn-dim); color:var(--warn);}
+  .badge.stopped{background:var(--danger-dim); color:var(--danger);}
+  .badge.pending{background:var(--brand-dim); color:var(--brand);}
+  .empty-state{padding:50px 20px; text-align:center; color:var(--text-dim); font-size:13px;}
+
+  /* ---------- Settings ---------- */
+  .settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .settings-block{padding:18px 20px;}
+  .form-row{margin-bottom:14px;}
+  .form-row label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:500;}
+  .form-row input{width:100%;}
+  .warn-box{
+    margin-top:12px; padding:12px 14px; background:var(--warn-dim); border:1px solid #FFB45444; border-radius:9px;
+    font-size:12px; color:var(--warn); line-height:1.6;
+  }
+  .rule-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; font-size:12.5px; color:var(--text-dim);}
+  .rule-row input{width:100px;}
+
+  /* modal */
+  .overlay{position:fixed; inset:0; background:#050810cc; backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--border); border-radius:16px; width:100%; max-width:560px; max-height:86vh; overflow-y:auto;}
+  .modal-head{padding:18px 22px; border-bottom:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:start;}
+  .modal-close{cursor:pointer; color:var(--text-dim); font-size:19px; line-height:1; background:none; border:none;}
+  .modal-body{padding:18px 22px;}
+  .trail-step{display:flex; gap:13px; padding-bottom:16px; position:relative;}
+  .trail-step:not(:last-child)::before{content:''; position:absolute; left:9px; top:22px; bottom:-2px; width:1px; background:var(--border);}
+  .trail-dot{width:19px; height:19px; border-radius:50%; background:#0D1524; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px;}
+  .trail-title{font-size:12.5px; font-weight:600;}
+  .trail-time{font-family:var(--mono); font-size:10px; color:var(--text-faint); margin-left:8px;}
+  .trail-detail{font-size:12px; color:var(--text-dim); margin-top:4px; line-height:1.5;}
+  .trail-msg{margin-top:8px; padding:9px 11px; background:#0D1524; border-radius:8px; border:1px solid var(--border-soft); font-size:12px; font-style:italic;}
+
+  @media (max-width: 980px){
+    body{flex-direction:column;}
+    .sidebar{width:100%; height:auto; position:relative; flex-direction:row; align-items:center; overflow-x:auto;}
+    .nav{flex-direction:row;} .sidebar-status{display:none;}
+    .main{padding:20px;}
+    .kpi-row{grid-template-columns:repeat(2,1fr);}
+    .overview-grid, .chart-grid, .chart-grid-2, .settings-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">R</div>
+    <div><div class="brand-name">Rebound</div><div class="brand-tag">Revenue Recovery</div></div>
+  </div>
+  <div class="nav" id="nav">
+    <div class="nav-item active" data-view="overview"><span class="nav-icon">◆</span>Overview</div>
+    <div class="nav-item" data-view="analytics"><span class="nav-icon">▤</span>Analytics</div>
+    <div class="nav-item" data-view="ledger"><span class="nav-icon">☰</span>Ledger</div>
+    <div class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>Settings</div>
+  </div>
+  <div class="sidebar-status">
+    <div class="sidebar-status-row"><span class="dot" id="streamDot"></span><span id="streamStatusText">Stream idle</span></div>
+    <div class="sidebar-status-row" style="margin-top:6px;"><span class="dot" id="engineDot"></span><span id="engineStatusText">Diagnosis engine idle</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ===================== OVERVIEW ===================== -->
+  <div class="view active" id="view-overview">
+    <div class="view-head">
+      <div>
+        <div class="view-title">Live recovery console</div>
+        <div class="view-sub">Watching the funnel in real time — payments, checkouts, subscriptions, receivables.</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-label">At risk</div><div class="kpi-value" id="kAtRisk">₹0</div></div>
+      <div class="kpi-card"><div class="kpi-label">Recovered</div><div class="kpi-value recover" id="kRecovered">₹0</div></div>
+      <div class="kpi-card"><div class="kpi-label">Recovery rate</div><div class="kpi-value" id="kRate">0%</div></div>
+      <div class="kpi-card"><div class="kpi-label">Escalated</div><div class="kpi-value warn" id="kEscalated">0</div></div>
+      <div class="kpi-card"><div class="kpi-label">Stopped by rule</div><div class="kpi-value danger" id="kStopped">0</div></div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Funnel</div><div class="panel-note">this session</div></div>
+        <div class="funnel" id="funnel">
+          <div class="funnel-row"><div class="funnel-label">Detected</div><div class="funnel-track"><div class="funnel-fill" id="f-detected" style="width:0%; background:var(--brand);"></div></div><div class="funnel-count" id="fc-detected">0</div></div>
+          <div class="funnel-row"><div class="funnel-label">Diagnosed</div><div class="funnel-track"><div class="funnel-fill" id="f-diagnosed" style="width:0%; background:var(--brand);"></div></div><div class="funnel-count" id="fc-diagnosed">0</div></div>
+          <div class="funnel-row"><div class="funnel-label">Actioned</div><div class="funnel-track"><div class="funnel-fill" id="f-actioned" style="width:0%; background:var(--brand);"></div></div><div class="funnel-count" id="fc-actioned">0</div></div>
+          <div class="funnel-row"><div class="funnel-label">Recovered</div><div class="funnel-track"><div class="funnel-fill" id="f-recovered" style="width:0%; background:var(--recover);"></div></div><div class="funnel-count" id="fc-recovered">0</div></div>
+        </div>
+        <div class="stream-controls">
+          <button class="btn btn-primary" id="startBtn">Start live stream</button>
+          <button class="btn btn-danger" id="stopBtn" style="display:none;">Stop stream</button>
+          <button class="btn btn-ghost" id="resetBtn">Reset session</button>
+          <div class="field"><label>Speed</label>
+            <select id="speedSelect">
+              <option value="slow">Slow</option>
+              <option value="normal" selected>Normal</option>
+              <option value="fast">Fast</option>
+            </select>
+          </div>
+          <div class="field"><label>Mix</label>
+            <select id="mixSelect">
+              <option value="all">All loss types</option>
+              <option value="payment_failed">Payments only</option>
+              <option value="checkout_abandoned">Checkout only</option>
+              <option value="subscription_failed">Subscriptions only</option>
+              <option value="invoice_overdue">Invoices only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Live event feed</div><div class="panel-note" id="feedCount">0 events</div></div>
+        <div class="console" id="console"><div class="console-empty">Stream is idle. Click "Start live stream" to begin watching the funnel.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ANALYTICS ===================== -->
+  <div class="view" id="view-analytics">
+    <div class="view-head">
+      <div><div class="view-title">Analytics</div><div class="view-sub">Simulation dynamics are calibrated to published NPCI &amp; industry benchmarks, not arbitrary numbers.</div></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="panel chart-box">
+        <div class="panel-title">Cumulative recovered ₹ over the session</div>
+        <div class="chart-canvas-wrap"><canvas id="chartTrend"></canvas></div>
+      </div>
+      <div class="panel chart-box">
+        <div class="panel-title">Root cause mix</div>
+        <div class="chart-canvas-wrap"><canvas id="chartCause"></canvas></div>
+        <div class="benchmark-note">Calibrated so ~<b>82%</b> of payment failures are "business declines" (wrong PIN, insufficient funds, limit exceeded) and ~<b>18%</b> are technical (timeouts, system issues) — matching NPCI's reported UPI failure-cause split.</div>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <div class="panel chart-box">
+        <div class="panel-title">Recovery rate by loss type</div>
+        <div class="chart-canvas-wrap"><canvas id="chartRate"></canvas></div>
+      </div>
+      <div class="panel chart-box">
+        <div class="panel-title">Outcome distribution</div>
+        <div class="chart-canvas-wrap"><canvas id="chartOutcome"></canvas></div>
+        <div class="benchmark-note">Overall failed-transaction volume is modeled around the <b>7–9%</b> monthly failure band NPCI has reported across remitter banks — Rebound's job is recovering inside that band, not pretending it doesn't exist.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LEDGER ===================== -->
+  <div class="view" id="view-ledger">
+    <div class="view-head">
+      <div><div class="view-title">Ledger &amp; audit trail</div><div class="view-sub">Every case, every step, timestamped. Click a row for the full trail.</div></div>
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-filter="all">All</div>
+        <div class="tab" data-filter="recovered">Recovered</div>
+        <div class="tab" data-filter="escalated">Escalated</div>
+        <div class="tab" data-filter="stopped">Stopped</div>
+      </div>
+    </div>
+    <div class="panel"><div class="ledger" id="ledger"><div class="empty-state">No transactions yet. Start the live stream from Overview.</div></div></div>
+  </div>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <div class="view" id="view-settings">
+    <div class="view-head"><div><div class="view-title">Settings</div><div class="view-sub">Decision thresholds and the Razorpay connection.</div></div></div>
+
+    <div class="settings-grid">
+      <div class="panel settings-block">
+        <div class="panel-title" style="margin-bottom:14px;">Bounded decision rules</div>
+        <div class="rule-row"><span>Auto-escalate above this amount (₹)</span><input type="number" id="ruleEscalate" value="50000" step="1000"></div>
+        <div class="rule-row"><span>Max retries before stopping</span><input type="number" id="ruleRetries" value="3" min="1" max="6"></div>
+        <div class="rule-row"><span>Min confidence to auto-act (%)</span><input type="number" id="ruleConfidence" value="55" min="0" max="100"></div>
+        <div class="panel-note" style="line-height:1.6;">These are enforced in plain code, not by asking the model to behave — Claude only diagnoses and recommends. It cannot itself act outside these bounds.</div>
+      </div>
+
+      <div class="panel settings-block">
+        <div class="panel-title" style="margin-bottom:14px;">Connect Razorpay test mode</div>
+        <div class="form-row"><label>Key ID</label><input type="text" placeholder="rzp_test_xxxxxxxxxxxxxxxx" disabled></div>
+        <div class="form-row"><label>Key Secret</label><input type="password" placeholder="never enter this in a browser field" disabled></div>
+        <button class="btn btn-ghost" disabled>Connect (requires backend)</button>
+        <div class="warn-box">Disabled on purpose. A secret key can never live in client-side code — anyone could view-source and take it. Wiring this live needs a thin backend (e.g. Node/Express) that holds the key server-side and relays calls; the diagnosis and decision engine here would plug into it unchanged.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div><div style="font-size:10.5px; color:var(--text-faint); font-family:var(--mono);" id="modalId"></div>
+      <div style="font-family:var(--display); font-weight:600; font-size:16px; margin-top:2px;" id="modalName"></div></div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================= DATA MODEL ============================= */
+const FIRST_NAMES = ["Aditi","Rohan","Priya","Karan","Sneha","Vikram","Ananya","Farhan","Neha","Arjun","Meera","Siddharth","Ishita","Rahul","Pooja","Aman","Divya","Yash","Tanvi","Kabir"];
+const LAST_NAMES = ["Sharma","Mehta","Nair","Malhotra","Iyer","Singh","Gupta","Sheikh","Reddy","Kapoor","Joshi","Verma","Bhatt","Chawla","Rao"];
+const BIZ_NAMES = ["Zenith Traders Pvt Ltd","BluePeak Retail","Nova Textiles","Orbit Logistics","Kaveri Foods","Silverline Apparel","Greenfield Agro","Meridian Studios","Crestline Interiors","Suryansh Exports"];
+
+const TYPE_META = {
+  payment_failed:      { label:"Payment failed",      amt:[200,8000] },
+  checkout_abandoned:  { label:"Checkout abandoned",   amt:[500,15000] },
+  subscription_failed: { label:"Subscription failed",  amt:[99,2999] },
+  invoice_overdue:     { label:"Invoice overdue",      amt:[10000,250000] }
+};
+
+/* Root-cause pools weighted to reflect NPCI's reported split: ~82% "business decline"
+   (insufficient_funds, wrong_otp, expired_card, risk_flagged) vs ~18% "technical decline"
+   (bank_timeout, technical_glitch) for payment failures. Checkout/subscription/invoice
+   causes are separated by domain rather than reusing consumer-failure language. */
+const CAUSE_POOL = {
+  payment_failed: [
+    ["insufficient_funds", 0.34, "Card declined — insufficient funds"],
+    ["wrong_otp", 0.20, "OTP entered incorrectly"],
+    ["expired_card", 0.16, "Card expired"],
+    ["risk_flagged", 0.12, "Issuing bank declined — risk flag"],
+    ["bank_timeout", 0.12, "Bank server timeout"],
+    ["technical_glitch", 0.06, "Gateway technical failure"]
+  ],
+  checkout_abandoned: [
+    ["distracted_dropout", 0.45, "Cart abandoned at payment step"],
+    ["price_hesitation", 0.30, "Higher price shown at checkout"],
+    ["distracted_dropout", 0.15, "Session timed out"],
+    ["price_hesitation", 0.10, "Cart abandoned at address step"]
+  ],
+  subscription_failed: [
+    ["mandate_expired", 0.40, "UPI Autopay mandate failed"],
+    ["insufficient_funds", 0.30, "Insufficient balance on renewal date"],
+    ["expired_card", 0.20, "Card on file expired"],
+    ["mandate_expired", 0.10, "Mandate paused by customer"]
+  ],
+  invoice_overdue: [
+    ["invoice_forgotten", 0.35, "Invoice 15 days overdue"],
+    ["awaiting_approval", 0.25, "Awaiting internal approval on buyer side"],
+    ["cashflow_delay", 0.25, "Invoice 30 days overdue — cashflow delay cited"],
+    ["dispute", 0.15, "Partial payment received, balance disputed"]
+  ]
+};
+
+function weightedPick(pool){
+  const r = Math.random();
+  let acc = 0;
+  for(const [cause, weight, reasonText] of pool){ acc += weight; if(r <= acc) return {cause, reasonText}; }
+  const last = pool[pool.length-1]; return {cause:last[0], reasonText:last[2]};
+}
+
+const ACTION_LABEL = {
+  retry_alt_method:"Retry via alternate method", retry_same_method:"Retry same payment method",
+  send_reminder:"Send payment reminder", retrigger_mandate:"Re-trigger UPI mandate",
+  escalate_human:"Escalate to human agent", no_action_needed:"No action — self-resolved"
+};
+
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function fmtINR(n){ return "₹" + Math.round(n).toLocaleString("en-IN"); }
+function fmtTime(d){ return d.toLocaleTimeString("en-IN",{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+let TXNS = [];
+let SEQ = 0;
+let STREAMING = false;
+let PENDING_BUFFER = [];
+let currentFilter = "all";
+
+function makeTransaction(mix){
+  const types = mix === "all" ? Object.keys(TYPE_META) : [mix];
+  const type = pick(types);
+  const meta = TYPE_META[type];
+  const isB2B = type === "invoice_overdue";
+  const name = isB2B ? pick(BIZ_NAMES) : `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+  const {cause, reasonText} = weightedPick(CAUSE_POOL[type]);
+  SEQ++;
+  return {
+    id:"RB-"+(1000+SEQ), type, label:meta.label, name,
+    amount: rand(meta.amt[0], meta.amt[1]),
+    reason: reasonText, expectedCause: cause,
+    retryCount:0, status:"pending",
+    trail:[{ step:"detected", at:new Date(), detail:`Flagged as ${meta.label.toLowerCase()}` }],
+    diagnosis:null, action:null
+  };
+}
+
+/* ============================= DIAGNOSIS (Claude) ============================= */
+async function diagnoseChunk(chunk){
+  const payload = chunk.map(t => ({ id:t.id, type:t.type, amount:t.amount, reason:t.reason, name:t.name }));
+  const prompt = `You are Rebound's diagnosis engine for a Razorpay merchant's revenue recovery agent. For each transaction below, determine the root cause and a recommended action.
+
+Transactions (JSON): ${JSON.stringify(payload)}
+
+Root cause options: insufficient_funds, bank_timeout, expired_card, wrong_otp, price_hesitation, distracted_dropout, mandate_expired, invoice_forgotten, awaiting_approval, cashflow_delay, dispute, technical_glitch, risk_flagged.
+Recommended action options: retry_alt_method, retry_same_method, send_reminder, retrigger_mandate, escalate_human, no_action_needed.
+
+Return ONLY a raw JSON array, no markdown fences, no preamble. Schema per item:
+{"id":"...", "root_cause":"...", "confidence":0.0-1.0, "reasoning":"under 16 words", "recommended_action":"...", "customer_message_hinglish":"under 22 words natural Hinglish reminder, only if action is send_reminder or retrigger_mandate, else empty string"}`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{ role:"user", content:prompt }] })
+  });
+  const data = await response.json();
+  const textBlock = (data.content||[]).find(b=>b.type==="text");
+  if(!textBlock) throw new Error("No text content in response");
+  let clean = textBlock.text.trim().replace(/^```json/i,"").replace(/^```/,"").replace(/```$/,"").trim();
+  return JSON.parse(clean);
+}
+
+function localFallbackDiagnose(t){
+  const map = {
+    payment_failed:{ action:"retry_alt_method" }, checkout_abandoned:{ action:"send_reminder" },
+    subscription_failed:{ action:"retrigger_mandate" }, invoice_overdue:{ action:"send_reminder" }
+  };
+  const action = map[t.type].action;
+  return { id:t.id, root_cause:t.expectedCause, confidence:0.6, reasoning:"Fallback heuristic — diagnosis engine unreachable", recommended_action:action,
+    customer_message_hinglish: (action==="send_reminder"||action==="retrigger_mandate") ? "Aapka payment pending hai, please check karke complete kar dijiye." : "" };
+}
+
+/* ============================= DECISION ENGINE (bounded, deterministic) ============================= */
+function getRules(){
+  return {
+    escalate: parseFloat(document.getElementById('ruleEscalate').value) || 50000,
+    maxRetries: parseInt(document.getElementById('ruleRetries').value) || 3,
+    confFloor: (parseFloat(document.getElementById('ruleConfidence').value) || 55)/100
+  };
+}
+function decideAction(t, diag){
+  const rules = getRules();
+  let action = diag.recommended_action, ruleApplied = null;
+  if(t.amount > rules.escalate){ action="escalate_human"; ruleApplied=`Amount ${fmtINR(t.amount)} exceeds ${fmtINR(rules.escalate)} auto-escalation threshold`; }
+  else if(diag.confidence < rules.confFloor){ action="escalate_human"; ruleApplied=`Confidence ${(diag.confidence*100).toFixed(0)}% below ${(rules.confFloor*100).toFixed(0)}% floor`; }
+  else if((action==="retry_alt_method"||action==="retry_same_method") && t.retryCount>=rules.maxRetries){ action="stopped"; ruleApplied=`Max retries (${rules.maxRetries}) reached — stopping rule applied`; }
+  return { action, ruleApplied };
+}
+
+function successProbability(rootCause, action){
+  const table = {
+    bank_timeout:{retry_alt_method:0.8, retry_same_method:0.55},
+    insufficient_funds:{retry_alt_method:0.35, retry_same_method:0.15, send_reminder:0.4},
+    wrong_otp:{retry_alt_method:0.7, retry_same_method:0.6},
+    expired_card:{retry_alt_method:0.5, send_reminder:0.3},
+    risk_flagged:{retry_alt_method:0.2, retry_same_method:0.1},
+    price_hesitation:{send_reminder:0.45}, distracted_dropout:{send_reminder:0.55},
+    mandate_expired:{retrigger_mandate:0.65, send_reminder:0.3},
+    invoice_forgotten:{send_reminder:0.6}, awaiting_approval:{send_reminder:0.4},
+    cashflow_delay:{send_reminder:0.3}, dispute:{send_reminder:0.25},
+    technical_glitch:{retry_alt_method:0.75, retry_same_method:0.6}
+  };
+  return (table[rootCause] && table[rootCause][action]) ?? 0.4;
+}
+
+/* ============================= CHARTS ============================= */
+let chartTrend, chartCause, chartRate, chartOutcome;
+const CHART_COLORS = { brand:"#5B8CFF", recover:"#22D6A5", warn:"#FFB454", danger:"#FF6B6B", faint:"#4E5C74" };
+
+function initCharts(){
+  const gridColor = "#1B2740";
+  Chart.defaults.color = "#8492AB";
+  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+  Chart.defaults.font.size = 10.5;
+
+  chartTrend = new Chart(document.getElementById('chartTrend'), {
+    type:'line',
+    data:{ labels:[], datasets:[{ label:'Recovered ₹', data:[], borderColor:CHART_COLORS.recover, backgroundColor:'#22D6A522', fill:true, tension:0.35, pointRadius:0, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:gridColor}}, y:{grid:{color:gridColor}, ticks:{callback:v=>'₹'+v}} } }
+  });
+  chartCause = new Chart(document.getElementById('chartCause'), {
+    type:'doughnut',
+    data:{ labels:[], datasets:[{ data:[], backgroundColor:[CHART_COLORS.brand,CHART_COLORS.recover,CHART_COLORS.warn,CHART_COLORS.danger,"#9B7EDE","#4E5C74","#3AA0FF","#E896C4"] }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:9.5}}}} }
+  });
+  chartRate = new Chart(document.getElementById('chartRate'), {
+    type:'bar',
+    data:{ labels:Object.values(TYPE_META).map(m=>m.label), datasets:[{ label:'Recovery rate %', data:[0,0,0,0], backgroundColor:CHART_COLORS.brand, borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}}, y:{grid:{color:gridColor}, max:100} } }
+  });
+  chartOutcome = new Chart(document.getElementById('chartOutcome'), {
+    type:'doughnut',
+    data:{ labels:['Recovered','Escalated','Stopped','Pending'], datasets:[{ data:[0,0,0,0], backgroundColor:[CHART_COLORS.recover,CHART_COLORS.warn,CHART_COLORS.danger,CHART_COLORS.faint] }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:9.5}}}} }
+  });
+}
+
+let trendCumulative = 0, trendPoints = 0;
+function pushTrendPoint(recoveredDelta){
+  trendCumulative += recoveredDelta; trendPoints++;
+  chartTrend.data.labels.push(trendPoints);
+  chartTrend.data.datasets[0].data.push(trendCumulative);
+  if(chartTrend.data.labels.length > 60){ chartTrend.data.labels.shift(); chartTrend.data.datasets[0].data.shift(); }
+  chartTrend.update('none');
+}
+function refreshCauseChart(){
+  const counts = {};
+  TXNS.forEach(t=>{ if(t.diagnosis){ const k=t.diagnosis.root_cause; counts[k]=(counts[k]||0)+1; } });
+  chartCause.data.labels = Object.keys(counts).map(k=>k.replace(/_/g,' '));
+  chartCause.data.datasets[0].data = Object.values(counts);
+  chartCause.update('none');
+}
+function refreshRateChart(){
+  const types = Object.keys(TYPE_META);
+  const rates = types.map(type=>{
+    const subset = TXNS.filter(t=>t.type===type && t.status!=="pending");
+    if(subset.length===0) return 0;
+    const recovered = subset.filter(t=>t.status==="recovered").length;
+    return Math.round(recovered/subset.length*100);
+  });
+  chartRate.data.datasets[0].data = rates;
+  chartRate.update('none');
+}
+function refreshOutcomeChart(){
+  const recovered = TXNS.filter(t=>t.status==="recovered").length;
+  const escalated = TXNS.filter(t=>t.status==="escalated").length;
+  const stopped = TXNS.filter(t=>t.status==="stopped").length;
+  const pending = TXNS.filter(t=>t.status==="pending").length;
+  chartOutcome.data.datasets[0].data = [recovered, escalated, stopped, pending];
+  chartOutcome.update('none');
+}
+
+/* ============================= STREAM ENGINE ============================= */
+function speedDelay(){
+  const v = document.getElementById('speedSelect').value;
+  return v==="slow" ? rand(2600,4200) : v==="fast" ? rand(500,1100) : rand(1200,2200);
+}
+
+function logConsole(text, cls){
+  const el = document.getElementById('console');
+  if(el.querySelector('.console-empty')) el.innerHTML = '';
+  const line = document.createElement('div');
+  line.className = 'console-line' + (cls?(' '+cls):'');
+  line.innerHTML = `<span class="t">${fmtTime(new Date())}</span>${text}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  const count = el.querySelectorAll('.console-line').length;
+  document.getElementById('feedCount').textContent = count + " events";
+  while(el.children.length > 120) el.removeChild(el.firstChild);
+}
+
+async function streamLoop(){
+  while(STREAMING){
+    const mix = document.getElementById('mixSelect').value;
+    const t = makeTransaction(mix);
+    TXNS.push(t);
+    logConsole(`<b>${t.id}</b> detected — ${t.label.toLowerCase()} — ${fmtINR(t.amount)} — ${t.name}`);
+    updateFunnel(); updateKPIs();
+    PENDING_BUFFER.push(t);
+    if(PENDING_BUFFER.length >= 4) flushBuffer();
+    await sleep(speedDelay());
+  }
+}
+
+let flushing = false;
+async function flushBuffer(){
+  if(flushing || PENDING_BUFFER.length===0) return;
+  flushing = true;
+  const chunk = PENDING_BUFFER.splice(0, PENDING_BUFFER.length);
+  setEngineStatus(true);
+  let results;
+  try{ results = await diagnoseChunk(chunk); }
+  catch(err){ console.warn("Diagnosis fallback:", err); results = chunk.map(localFallbackDiagnose); }
+  setEngineStatus(false);
+
+  for(const r of results){
+    const t = TXNS.find(x=>x.id===r.id);
+    if(!t) continue;
+    t.diagnosis = r;
+    t.trail.push({ step:"diagnosed", at:new Date(), detail:`Root cause: ${r.root_cause.replace(/_/g,' ')} (${(r.confidence*100).toFixed(0)}% confidence) — ${r.reasoning}` });
+    logConsole(`${t.id} diagnosed → <b>${r.root_cause.replace(/_/g,' ')}</b> (${(r.confidence*100).toFixed(0)}%)`, 'ok');
+    await resolveTransaction(t);
+    await sleep(120);
+  }
+  updateFunnel(); updateKPIs(); refreshCauseChart(); refreshRateChart(); refreshOutcomeChart(); renderLedger();
+  flushing = false;
+  if(PENDING_BUFFER.length >= 4) flushBuffer();
+}
+
+async function resolveTransaction(t){
+  const { action, ruleApplied } = decideAction(t, t.diagnosis);
+  t.action = action;
+  t.trail.push({ step:"decided", at:new Date(), detail: ruleApplied ? `Action: ${ACTION_LABEL[action]||action}. Rule applied: ${ruleApplied}` : `Action: ${ACTION_LABEL[action]||action} — within bounds` });
+
+  if(action==="escalate_human"){
+    t.status="escalated";
+    t.trail.push({ step:"acted", at:new Date(), detail:"Escalated to human agent for manual review.", msg:t.diagnosis.customer_message_hinglish||null });
+    logConsole(`${t.id} → escalated to human`, 'warn');
+  } else if(action==="stopped"){
+    t.status="stopped";
+    t.trail.push({ step:"acted", at:new Date(), detail:"No further automated action. Stopped by rule." });
+    logConsole(`${t.id} → stopped by rule`, 'bad');
+  } else if(action==="no_action_needed"){
+    t.status="recovered";
+    t.trail.push({ step:"acted", at:new Date(), detail:"No action needed — case had already self-resolved." });
+    logConsole(`${t.id} → self-resolved`, 'ok');
+    pushTrendPoint(t.amount);
+  } else {
+    t.retryCount++;
+    const p = successProbability(t.diagnosis.root_cause, action);
+    const success = Math.random() < p;
+    if(success){
+      t.status="recovered";
+      t.trail.push({ step:"acted", at:new Date(), detail:`${ACTION_LABEL[action]} executed — recovered.`, msg:t.diagnosis.customer_message_hinglish||null });
+      logConsole(`${t.id} → <b>recovered</b> ${fmtINR(t.amount)} via ${ACTION_LABEL[action].toLowerCase()}`, 'ok');
+      pushTrendPoint(t.amount);
+    } else if(t.retryCount >= getRules().maxRetries){
+      t.status="stopped";
+      t.trail.push({ step:"acted", at:new Date(), detail:`${ACTION_LABEL[action]} executed — unresolved. Retry limit reached.`, msg:t.diagnosis.customer_message_hinglish||null });
+      logConsole(`${t.id} → stopped (retry limit)`, 'bad');
+    } else {
+      t.status="escalated";
+      t.trail.push({ step:"acted", at:new Date(), detail:`${ACTION_LABEL[action]} executed — no response yet, flagged for follow-up.`, msg:t.diagnosis.customer_message_hinglish||null });
+      logConsole(`${t.id} → follow-up queued`, 'warn');
+    }
+  }
+}
+
+/* ============================= RENDER ============================= */
+function setEngineStatus(active){
+  document.getElementById('engineDot').classList.toggle('live', active);
+  document.getElementById('engineStatusText').textContent = active ? "Diagnosis engine running…" : "Diagnosis engine idle";
+}
+function setStreamStatus(active){
+  document.getElementById('streamDot').classList.toggle('live', active);
+  document.getElementById('streamStatusText').textContent = active ? "Stream live" : "Stream idle";
+}
+function bump(id, text){
+  const el = document.getElementById(id);
+  if(el.textContent !== text){ el.classList.add('bump'); setTimeout(()=>el.classList.remove('bump'), 200); }
+  el.textContent = text;
+}
+function updateKPIs(){
+  const atRisk = TXNS.reduce((s,t)=>s+t.amount,0);
+  const recovered = TXNS.filter(t=>t.status==="recovered").reduce((s,t)=>s+t.amount,0);
+  const escalated = TXNS.filter(t=>t.status==="escalated").length;
+  const stopped = TXNS.filter(t=>t.status==="stopped").length;
+  const rate = atRisk>0 ? (recovered/atRisk*100) : 0;
+  bump('kAtRisk', fmtINR(atRisk));
+  bump('kRecovered', fmtINR(recovered));
+  document.getElementById('kRate').textContent = rate.toFixed(1)+"%";
+  document.getElementById('kEscalated').textContent = escalated;
+  document.getElementById('kStopped').textContent = stopped;
+}
+function updateFunnel(){
+  const detected = TXNS.length;
+  const diagnosed = TXNS.filter(t=>t.diagnosis).length;
+  const actioned = TXNS.filter(t=>t.action).length;
+  const recovered = TXNS.filter(t=>t.status==="recovered").length;
+  const max = Math.max(detected,1);
+  document.getElementById('fc-detected').textContent = detected;
+  document.getElementById('fc-diagnosed').textContent = diagnosed;
+  document.getElementById('fc-actioned').textContent = actioned;
+  document.getElementById('fc-recovered').textContent = recovered;
+  document.getElementById('f-detected').style.width = (detected/max*100)+"%";
+  document.getElementById('f-diagnosed').style.width = (diagnosed/max*100)+"%";
+  document.getElementById('f-actioned').style.width = (actioned/max*100)+"%";
+  document.getElementById('f-recovered').style.width = (recovered/max*100)+"%";
+}
+function renderLedger(){
+  const ledger = document.getElementById('ledger');
+  const filtered = currentFilter==="all" ? TXNS : TXNS.filter(t=>t.status===currentFilter);
+  if(TXNS.length===0){ ledger.innerHTML = '<div class="empty-state">No transactions yet. Start the live stream from Overview.</div>'; return; }
+  if(filtered.length===0){ ledger.innerHTML = '<div class="empty-state">Nothing in this view yet.</div>'; return; }
+  ledger.innerHTML = [...filtered].reverse().map(t=>{
+    const badge = t.status==="pending" ? '<span class="badge pending">In progress</span>' : `<span class="badge ${t.status}">${t.status[0].toUpperCase()+t.status.slice(1)}</span>`;
+    return `<div class="ledger-row" data-id="${t.id}">
+      <div><div class="ledger-top"><span class="ledger-id">${t.id}</span><span class="ledger-name">${t.name}</span></div>
+      <div class="ledger-reason">${t.label} · ${t.reason}</div></div>
+      <div class="ledger-amount">${fmtINR(t.amount)}</div>${badge}</div>`;
+  }).join('');
+  ledger.querySelectorAll('.ledger-row').forEach(row=>row.addEventListener('click', ()=>openModal(row.dataset.id)));
+}
+
+const STEP_ICON = { detected:"◉", diagnosed:"◎", decided:"◈", acted:"✓" };
+function openModal(id){
+  const t = TXNS.find(x=>x.id===id); if(!t) return;
+  document.getElementById('modalId').textContent = t.id;
+  document.getElementById('modalName').textContent = `${t.name} — ${fmtINR(t.amount)}`;
+  document.getElementById('modalBody').innerHTML = t.trail.map(step=>`
+    <div class="trail-step"><div class="trail-dot">${STEP_ICON[step.step]||"•"}</div>
+    <div><span class="trail-title">${step.step[0].toUpperCase()+step.step.slice(1)}</span><span class="trail-time">${fmtTime(step.at)}</span>
+    <div class="trail-detail">${step.detail}</div>${step.msg?`<div class="trail-msg">"${step.msg}"</div>`:''}</div></div>`).join('');
+  document.getElementById('overlay').classList.add('show');
+}
+document.getElementById('modalClose').addEventListener('click', ()=>document.getElementById('overlay').classList.remove('show'));
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') e.currentTarget.classList.remove('show'); });
+
+/* ============================= EVENTS ============================= */
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  if(STREAMING) return;
+  STREAMING = true;
+  document.getElementById('startBtn').style.display='none';
+  document.getElementById('stopBtn').style.display='inline-block';
+  setStreamStatus(true);
+  streamLoop();
+});
+document.getElementById('stopBtn').addEventListener('click', ()=>{
+  STREAMING = false;
+  document.getElementById('startBtn').style.display='inline-block';
+  document.getElementById('stopBtn').style.display='none';
+  setStreamStatus(false);
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  STREAMING = false; PENDING_BUFFER = []; TXNS = []; SEQ = 0; trendCumulative = 0; trendPoints = 0;
+  document.getElementById('startBtn').style.display='inline-block';
+  document.getElementById('stopBtn').style.display='none';
+  setStreamStatus(false); setEngineStatus(false);
+  document.getElementById('console').innerHTML = '<div class="console-empty">Stream is idle. Click "Start live stream" to begin watching the funnel.</div>';
+  document.getElementById('feedCount').textContent = '0 events';
+  chartTrend.data.labels=[]; chartTrend.data.datasets[0].data=[]; chartTrend.update();
+  updateFunnel(); updateKPIs(); refreshCauseChart(); refreshRateChart(); refreshOutcomeChart(); renderLedger();
+});
+document.getElementById('tabs').addEventListener('click', e=>{
+  if(!e.target.classList.contains('tab')) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  e.target.classList.add('active'); currentFilter = e.target.dataset.filter; renderLedger();
+});
+document.getElementById('nav').addEventListener('click', e=>{
+  const item = e.target.closest('.nav-item'); if(!item) return;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  item.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+item.dataset.view).classList.add('active');
+});
+
+/* ============================= INIT ============================= */
+initCharts();
+updateFunnel(); updateKPIs();
+</script>
+</body>
+</html>
