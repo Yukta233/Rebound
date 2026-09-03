@@ -27,20 +27,15 @@
   @media (prefers-reduced-motion: reduce){ *{animation-duration:0.001s !important; transition-duration:0.001s !important;} }
   ::-webkit-scrollbar{width:8px; height:8px;} ::-webkit-scrollbar-thumb{background:var(--border); border-radius:8px;}
 
-  /* ---------- Sidebar ---------- */
-  .sidebar{
-    width:230px; flex-shrink:0; border-right:1px solid var(--border-soft); padding:24px 16px;
-    display:flex; flex-direction:column; gap:22px; position:sticky; top:0; height:100vh;
-  }
+  .sidebar{ width:230px; flex-shrink:0; border-right:1px solid var(--border-soft); padding:24px 16px;
+    display:flex; flex-direction:column; gap:22px; position:sticky; top:0; height:100vh; }
   .brand{display:flex; align-items:center; gap:10px; padding:0 6px;}
   .brand-mark{width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg, var(--recover), var(--brand)); display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; color:#08121C; font-size:16px;}
   .brand-name{font-family:var(--display); font-weight:700; font-size:18px; letter-spacing:-0.02em;}
   .brand-tag{font-size:10px; color:var(--text-dim); letter-spacing:0.06em; text-transform:uppercase;}
   .nav{display:flex; flex-direction:column; gap:2px; margin-top:4px;}
-  .nav-item{
-    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:9px; cursor:pointer;
-    font-size:13.5px; font-weight:500; color:var(--text-dim); transition:all 0.15s ease;
-  }
+  .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:9px; cursor:pointer;
+    font-size:13.5px; font-weight:500; color:var(--text-dim); transition:all 0.15s ease; }
   .nav-item:hover{background:#0D1524; color:var(--text);}
   .nav-item.active{background:var(--brand-dim); color:var(--brand);}
   .nav-icon{width:16px; text-align:center; font-size:13px;}
@@ -48,9 +43,9 @@
   .sidebar-status-row{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-dim);}
   .dot{width:6px; height:6px; border-radius:50%; background:var(--text-faint); flex-shrink:0;}
   .dot.live{background:var(--recover); box-shadow:0 0 8px var(--recover); animation:blink 1.4s infinite;}
+  .dot.warnDot{background:var(--warn); box-shadow:0 0 8px var(--warn);}
   @keyframes blink{0%,100%{opacity:1;} 50%{opacity:0.4;}}
 
-  /* ---------- Main ---------- */
   .main{flex:1; padding:26px 34px 60px; min-width:0;}
   .view{display:none;}
   .view.active{display:block;}
@@ -61,6 +56,7 @@
   .btn{font-family:var(--body); font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:9px; border:1px solid transparent; cursor:pointer; transition:all 0.15s ease;}
   .btn-primary{background:var(--recover); color:#06231A;}
   .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{opacity:0.45; cursor:not-allowed;}
   .btn-danger{background:var(--danger); color:#2B0808;}
   .btn-ghost{background:transparent; border-color:var(--border); color:var(--text-dim);}
   .btn-ghost:hover{color:var(--text); border-color:var(--text-faint);}
@@ -74,7 +70,6 @@
   .panel-title{font-family:var(--display); font-weight:600; font-size:14px;}
   .panel-note{font-size:11px; color:var(--text-faint);}
 
-  /* ---------- Overview: KPI row ---------- */
   .kpi-row{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px;}
   .kpi-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px 16px;}
   .kpi-label{font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;}
@@ -83,8 +78,11 @@
   .kpi-value.recover{color:var(--recover);} .kpi-value.warn{color:var(--warn);} .kpi-value.danger{color:var(--danger);}
 
   .overview-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:16px; align-items:start;}
+  .source-banner{display:flex; align-items:center; gap:10px; padding:10px 16px; margin-bottom:14px; border-radius:10px; border:1px solid var(--border-soft); background:#0D1524; font-size:12px; color:var(--text-dim);}
+  .source-banner b{color:var(--text);}
+  .source-banner.live{border-color:#22D6A544; background:var(--recover-dim); color:var(--recover);}
+  .source-banner.live b{color:var(--recover);}
 
-  /* funnel */
   .funnel{padding:18px;}
   .funnel-row{display:grid; grid-template-columns:110px 1fr 50px; align-items:center; gap:12px; margin-bottom:14px;}
   .funnel-label{font-size:12px; color:var(--text-dim); font-weight:500;}
@@ -92,7 +90,6 @@
   .funnel-fill{height:100%; border-radius:6px; transition:width .5s ease; background:var(--brand);}
   .funnel-count{font-family:var(--mono); font-size:13px; text-align:right;}
 
-  /* console */
   .console{height:280px; overflow-y:auto; padding:12px 16px; font-family:var(--mono); font-size:11.5px; background:#080C15;}
   .console-line{padding:3px 0; color:var(--text-dim); border-bottom:1px dashed #1B2740; line-height:1.5;}
   .console-line .t{color:var(--text-faint); margin-right:8px;}
@@ -101,23 +98,17 @@
   .console-line.bad{color:var(--danger);}
   .console-empty{color:var(--text-faint); text-align:center; padding-top:100px;}
 
-  /* controls bar */
   .stream-controls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; border-top:1px solid var(--border-soft);}
   .field{display:flex; align-items:center; gap:7px;}
   .field label{font-size:11.5px; color:var(--text-dim); font-weight:500;}
 
-  /* ---------- Analytics ---------- */
   .chart-grid{display:grid; grid-template-columns:1.3fr 0.7fr; gap:16px; margin-bottom:16px;}
   .chart-grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .chart-box{padding:16px 18px 8px;}
   .chart-canvas-wrap{position:relative; height:220px;}
-  .benchmark-note{
-    margin-top:10px; padding:10px 12px; background:#0D1524; border:1px solid var(--border-soft); border-radius:8px;
-    font-size:11.5px; color:var(--text-dim); line-height:1.5;
-  }
+  .benchmark-note{margin-top:10px; padding:10px 12px; background:#0D1524; border:1px solid var(--border-soft); border-radius:8px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
   .benchmark-note b{color:var(--text);}
 
-  /* ---------- Ledger ---------- */
   .tabs{display:flex; gap:6px;}
   .tab{font-size:11.5px; padding:6px 12px; border-radius:100px; color:var(--text-dim); cursor:pointer; border:1px solid transparent; font-weight:500;}
   .tab.active{background:var(--brand-dim); color:var(--brand); border-color:#5B8CFF44;}
@@ -136,20 +127,18 @@
   .badge.pending{background:var(--brand-dim); color:var(--brand);}
   .empty-state{padding:50px 20px; text-align:center; color:var(--text-dim); font-size:13px;}
 
-  /* ---------- Settings ---------- */
   .settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .settings-block{padding:18px 20px;}
   .form-row{margin-bottom:14px;}
   .form-row label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:500;}
   .form-row input{width:100%;}
-  .warn-box{
-    margin-top:12px; padding:12px 14px; background:var(--warn-dim); border:1px solid #FFB45444; border-radius:9px;
-    font-size:12px; color:var(--warn); line-height:1.6;
-  }
+  .warn-box{margin-top:12px; padding:12px 14px; background:var(--warn-dim); border:1px solid #FFB45444; border-radius:9px; font-size:12px; color:var(--warn); line-height:1.6;}
   .rule-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; font-size:12.5px; color:var(--text-dim);}
   .rule-row input{width:100px;}
+  .radio-row{display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:12.5px; cursor:pointer;}
+  .radio-row input{width:auto;}
+  .conn-status{font-size:12px; margin-top:10px; color:var(--text-dim); line-height:1.5;}
 
-  /* modal */
   .overlay{position:fixed; inset:0; background:#050810cc; backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
   .overlay.show{display:flex;}
   .modal{background:var(--panel); border:1px solid var(--border); border-radius:16px; width:100%; max-width:560px; max-height:86vh; overflow-y:auto;}
@@ -188,7 +177,8 @@
     <div class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>Settings</div>
   </div>
   <div class="sidebar-status">
-    <div class="sidebar-status-row"><span class="dot" id="streamDot"></span><span id="streamStatusText">Stream idle</span></div>
+    <div class="sidebar-status-row"><span class="dot" id="sourceDot"></span><span id="sourceStatusText">Data source: Simulated</span></div>
+    <div class="sidebar-status-row" style="margin-top:6px;"><span class="dot" id="streamDot"></span><span id="streamStatusText">Stream idle</span></div>
     <div class="sidebar-status-row" style="margin-top:6px;"><span class="dot" id="engineDot"></span><span id="engineStatusText">Diagnosis engine idle</span></div>
   </div>
 </div>
@@ -200,8 +190,13 @@
     <div class="view-head">
       <div>
         <div class="view-title">Live recovery console</div>
-        <div class="view-sub">Watching the funnel in real time — payments, checkouts, subscriptions, receivables.</div>
+        <div class="view-sub">Watching the funnel — payments, checkouts, subscriptions, receivables.</div>
       </div>
+    </div>
+
+    <div class="source-banner" id="sourceBanner">
+      <span class="dot" id="bannerDot"></span>
+      <span id="bannerText">Running on <b>simulated</b> data, calibrated to real NPCI/industry failure-rate benchmarks. Switch to Live in Settings once your backend is running.</span>
     </div>
 
     <div class="kpi-row">
@@ -298,7 +293,7 @@
 
   <!-- ===================== SETTINGS ===================== -->
   <div class="view" id="view-settings">
-    <div class="view-head"><div><div class="view-title">Settings</div><div class="view-sub">Decision thresholds and the Razorpay connection.</div></div></div>
+    <div class="view-head"><div><div class="view-title">Settings</div><div class="view-sub">Decision thresholds and the data source.</div></div></div>
 
     <div class="settings-grid">
       <div class="panel settings-block">
@@ -306,15 +301,20 @@
         <div class="rule-row"><span>Auto-escalate above this amount (₹)</span><input type="number" id="ruleEscalate" value="50000" step="1000"></div>
         <div class="rule-row"><span>Max retries before stopping</span><input type="number" id="ruleRetries" value="3" min="1" max="6"></div>
         <div class="rule-row"><span>Min confidence to auto-act (%)</span><input type="number" id="ruleConfidence" value="55" min="0" max="100"></div>
-        <div class="panel-note" style="line-height:1.6;">These are enforced in plain code, not by asking the model to behave — Claude only diagnoses and recommends. It cannot itself act outside these bounds.</div>
+        <div class="panel-note" style="line-height:1.6;">Enforced in plain code, not by asking the model to behave — Claude only diagnoses and recommends. It cannot act outside these bounds.</div>
       </div>
 
       <div class="panel settings-block">
-        <div class="panel-title" style="margin-bottom:14px;">Connect Razorpay test mode</div>
-        <div class="form-row"><label>Key ID</label><input type="text" placeholder="rzp_test_xxxxxxxxxxxxxxxx" disabled></div>
-        <div class="form-row"><label>Key Secret</label><input type="password" placeholder="never enter this in a browser field" disabled></div>
-        <button class="btn btn-ghost" disabled>Connect (requires backend)</button>
-        <div class="warn-box">Disabled on purpose. A secret key can never live in client-side code — anyone could view-source and take it. Wiring this live needs a thin backend (e.g. Node/Express) that holds the key server-side and relays calls; the diagnosis and decision engine here would plug into it unchanged.</div>
+        <div class="panel-title" style="margin-bottom:14px;">Data source</div>
+        <label class="radio-row"><input type="radio" name="dataSource" value="simulated" checked> Simulated — calibrated to real NPCI/industry benchmarks</label>
+        <label class="radio-row"><input type="radio" name="dataSource" value="live"> Live — Razorpay test mode, via your own backend</label>
+        <div class="form-row" style="margin-top:12px;">
+          <label>Backend URL</label>
+          <input type="text" id="backendUrl" value="http://localhost:3001" style="width:100%;">
+        </div>
+        <button class="btn btn-ghost" id="testConnBtn">Test connection</button>
+        <div class="conn-status" id="connStatus"></div>
+        <div class="warn-box">A Razorpay secret key can never live in browser code — anyone could view-source and take it. The <b>/backend</b> folder in your download is a small Express server that holds your test-mode keys server-side, pulls failed payments, unpaid orders, halted subscriptions and overdue invoices from Razorpay's real test-mode API, and serves them normalized to this dashboard. Run it locally (<code>npm install && npm start</code> after adding your test keys to <code>.env</code>), then switch to Live here.</div>
       </div>
     </div>
   </div>
@@ -345,10 +345,6 @@ const TYPE_META = {
   invoice_overdue:     { label:"Invoice overdue",      amt:[10000,250000] }
 };
 
-/* Root-cause pools weighted to reflect NPCI's reported split: ~82% "business decline"
-   (insufficient_funds, wrong_otp, expired_card, risk_flagged) vs ~18% "technical decline"
-   (bank_timeout, technical_glitch) for payment failures. Checkout/subscription/invoice
-   causes are separated by domain rather than reusing consumer-failure language. */
 const CAUSE_POOL = {
   payment_failed: [
     ["insufficient_funds", 0.34, "Card declined — insufficient funds"],
@@ -379,8 +375,7 @@ const CAUSE_POOL = {
 };
 
 function weightedPick(pool){
-  const r = Math.random();
-  let acc = 0;
+  const r = Math.random(); let acc = 0;
   for(const [cause, weight, reasonText] of pool){ acc += weight; if(r <= acc) return {cause, reasonText}; }
   const last = pool[pool.length-1]; return {cause:last[0], reasonText:last[2]};
 }
@@ -402,6 +397,9 @@ let SEQ = 0;
 let STREAMING = false;
 let PENDING_BUFFER = [];
 let currentFilter = "all";
+let DATA_SOURCE = "simulated";
+let BACKEND_URL = "http://localhost:3001";
+let seenLiveIds = new Set();
 
 function makeTransaction(mix){
   const types = mix === "all" ? Object.keys(TYPE_META) : [mix];
@@ -450,8 +448,8 @@ function localFallbackDiagnose(t){
     payment_failed:{ action:"retry_alt_method" }, checkout_abandoned:{ action:"send_reminder" },
     subscription_failed:{ action:"retrigger_mandate" }, invoice_overdue:{ action:"send_reminder" }
   };
-  const action = map[t.type].action;
-  return { id:t.id, root_cause:t.expectedCause, confidence:0.6, reasoning:"Fallback heuristic — diagnosis engine unreachable", recommended_action:action,
+  const action = (map[t.type] || {action:"send_reminder"}).action;
+  return { id:t.id, root_cause:t.expectedCause || "technical_glitch", confidence:0.6, reasoning:"Fallback heuristic — diagnosis engine unreachable", recommended_action:action,
     customer_message_hinglish: (action==="send_reminder"||action==="retrigger_mandate") ? "Aapka payment pending hai, please check karke complete kar dijiye." : "" };
 }
 
@@ -519,6 +517,9 @@ function initCharts(){
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{boxWidth:10, font:{size:9.5}}}} }
   });
 }
+function resizeAllCharts(){
+  [chartTrend, chartCause, chartRate, chartOutcome].forEach(c=>{ if(c) c.resize(); });
+}
 
 let trendCumulative = 0, trendPoints = 0;
 function pushTrendPoint(recoveredDelta){
@@ -554,6 +555,7 @@ function refreshOutcomeChart(){
   chartOutcome.data.datasets[0].data = [recovered, escalated, stopped, pending];
   chartOutcome.update('none');
 }
+function refreshAllCharts(){ refreshCauseChart(); refreshRateChart(); refreshOutcomeChart(); }
 
 /* ============================= STREAM ENGINE ============================= */
 function speedDelay(){
@@ -576,14 +578,52 @@ function logConsole(text, cls){
 
 async function streamLoop(){
   while(STREAMING){
-    const mix = document.getElementById('mixSelect').value;
-    const t = makeTransaction(mix);
-    TXNS.push(t);
-    logConsole(`<b>${t.id}</b> detected — ${t.label.toLowerCase()} — ${fmtINR(t.amount)} — ${t.name}`);
-    updateFunnel(); updateKPIs();
-    PENDING_BUFFER.push(t);
-    if(PENDING_BUFFER.length >= 4) flushBuffer();
-    await sleep(speedDelay());
+    if(DATA_SOURCE === "live"){
+      await pollLiveOnce();
+      await sleep(Math.max(speedDelay(), 3000));
+    } else {
+      const mix = document.getElementById('mixSelect').value;
+      const t = makeTransaction(mix);
+      TXNS.push(t);
+      logConsole(`<b>${t.id}</b> detected — ${t.label.toLowerCase()} — ${fmtINR(t.amount)} — ${t.name}`);
+      updateFunnel(); updateKPIs(); renderLedger(); refreshOutcomeChart();
+      PENDING_BUFFER.push(t);
+      if(PENDING_BUFFER.length >= 4) flushBuffer();
+      await sleep(speedDelay());
+    }
+  }
+}
+
+async function pollLiveOnce(){
+  try{
+    const res = await fetch(BACKEND_URL + "/api/at-risk-transactions");
+    if(!res.ok){
+      const err = await res.json().catch(()=>({error:res.statusText}));
+      logConsole(`Live fetch error: ${err.error || res.statusText}`, 'bad');
+      return;
+    }
+    const data = await res.json();
+    let added = 0;
+    (data.items||[]).forEach(item=>{
+      if(seenLiveIds.has(item.id)) return;
+      seenLiveIds.add(item.id);
+      const meta = TYPE_META[item.type] || { label:item.type };
+      const t = {
+        id:item.id, type:item.type, label:meta.label, name:item.name || "Customer",
+        amount:item.amount || 0, reason:item.reason || item.type, expectedCause:null,
+        retryCount:0, status:"pending",
+        trail:[{ step:"detected", at:new Date(), detail:`Live from Razorpay test mode — ${item.reason || ''}` }],
+        diagnosis:null, action:null
+      };
+      TXNS.push(t);
+      logConsole(`<b>${t.id}</b> detected (live) — ${t.label} — ${fmtINR(t.amount)}`);
+      PENDING_BUFFER.push(t);
+      added++;
+    });
+    if(added>0){ updateFunnel(); updateKPIs(); renderLedger(); refreshOutcomeChart(); flushBuffer(); }
+    else logConsole(`Polled Razorpay test mode — no new at-risk transactions.`);
+  }catch(err){
+    logConsole('Could not reach the backend — is it running? (npm start in /backend)', 'bad');
   }
 }
 
@@ -605,9 +645,10 @@ async function flushBuffer(){
     t.trail.push({ step:"diagnosed", at:new Date(), detail:`Root cause: ${r.root_cause.replace(/_/g,' ')} (${(r.confidence*100).toFixed(0)}% confidence) — ${r.reasoning}` });
     logConsole(`${t.id} diagnosed → <b>${r.root_cause.replace(/_/g,' ')}</b> (${(r.confidence*100).toFixed(0)}%)`, 'ok');
     await resolveTransaction(t);
+    updateFunnel(); updateKPIs(); renderLedger();
     await sleep(120);
   }
-  updateFunnel(); updateKPIs(); refreshCauseChart(); refreshRateChart(); refreshOutcomeChart(); renderLedger();
+  refreshAllCharts(); renderLedger();
   flushing = false;
   if(PENDING_BUFFER.length >= 4) flushBuffer();
 }
@@ -659,6 +700,17 @@ function setEngineStatus(active){
 function setStreamStatus(active){
   document.getElementById('streamDot').classList.toggle('live', active);
   document.getElementById('streamStatusText').textContent = active ? "Stream live" : "Stream idle";
+}
+function setSourceIndicators(){
+  const isLive = DATA_SOURCE === "live";
+  document.getElementById('sourceStatusText').textContent = "Data source: " + (isLive ? "Live (Razorpay test mode)" : "Simulated");
+  document.getElementById('sourceDot').classList.toggle('warnDot', isLive);
+  const banner = document.getElementById('sourceBanner');
+  banner.classList.toggle('live', isLive);
+  document.getElementById('bannerDot').classList.toggle('live', isLive);
+  document.getElementById('bannerText').innerHTML = isLive
+    ? `Running on <b>live Razorpay test-mode data</b> pulled through your backend at ${BACKEND_URL}.`
+    : `Running on <b>simulated</b> data, calibrated to real NPCI/industry failure-rate benchmarks. Switch to Live in Settings once your backend is running.`;
 }
 function bump(id, text){
   const el = document.getElementById(id);
@@ -737,14 +789,14 @@ document.getElementById('stopBtn').addEventListener('click', ()=>{
   setStreamStatus(false);
 });
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  STREAMING = false; PENDING_BUFFER = []; TXNS = []; SEQ = 0; trendCumulative = 0; trendPoints = 0;
+  STREAMING = false; PENDING_BUFFER = []; TXNS = []; SEQ = 0; trendCumulative = 0; trendPoints = 0; seenLiveIds = new Set();
   document.getElementById('startBtn').style.display='inline-block';
   document.getElementById('stopBtn').style.display='none';
   setStreamStatus(false); setEngineStatus(false);
   document.getElementById('console').innerHTML = '<div class="console-empty">Stream is idle. Click "Start live stream" to begin watching the funnel.</div>';
   document.getElementById('feedCount').textContent = '0 events';
   chartTrend.data.labels=[]; chartTrend.data.datasets[0].data=[]; chartTrend.update();
-  updateFunnel(); updateKPIs(); refreshCauseChart(); refreshRateChart(); refreshOutcomeChart(); renderLedger();
+  updateFunnel(); updateKPIs(); refreshAllCharts(); renderLedger();
 });
 document.getElementById('tabs').addEventListener('click', e=>{
   if(!e.target.classList.contains('tab')) return;
@@ -757,11 +809,40 @@ document.getElementById('nav').addEventListener('click', e=>{
   item.classList.add('active');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+item.dataset.view).classList.add('active');
+  if(item.dataset.view === 'analytics'){
+    requestAnimationFrame(()=>{ resizeAllCharts(); refreshAllCharts(); });
+  }
+});
+document.querySelectorAll('input[name="dataSource"]').forEach(r=>{
+  r.addEventListener('change', e=>{ DATA_SOURCE = e.target.value; seenLiveIds = new Set(); setSourceIndicators(); });
+});
+document.getElementById('testConnBtn').addEventListener('click', async ()=>{
+  const urlInput = document.getElementById('backendUrl').value.trim() || 'http://localhost:3001';
+  BACKEND_URL = urlInput;
+  const statusEl = document.getElementById('connStatus');
+  statusEl.textContent = 'Checking…'; statusEl.style.color = 'var(--text-dim)';
+  try{
+    const res = await fetch(BACKEND_URL + '/api/health');
+    const data = await res.json();
+    if(data.ok && data.keysConfigured){
+      statusEl.textContent = '✓ Connected — Razorpay test-mode keys are configured on the backend.';
+      statusEl.style.color = 'var(--recover)';
+    } else if(data.ok){
+      statusEl.textContent = '⚠ Backend is reachable, but no test-mode keys are set in backend/.env yet.';
+      statusEl.style.color = 'var(--warn)';
+    } else {
+      statusEl.textContent = '✗ Backend responded unexpectedly.';
+      statusEl.style.color = 'var(--danger)';
+    }
+  }catch(err){
+    statusEl.textContent = '✗ Could not reach ' + BACKEND_URL + '. Run "npm start" in /backend first.';
+    statusEl.style.color = 'var(--danger)';
+  }
 });
 
 /* ============================= INIT ============================= */
 initCharts();
-updateFunnel(); updateKPIs();
+updateFunnel(); updateKPIs(); setSourceIndicators();
 </script>
 </body>
 </html>
