@@ -87,12 +87,12 @@
   .panel-title{font-family:var(--display); font-weight:600; font-size:14px;}
   .panel-note{font-size:11px; color:var(--text-faint);}
 
-  .kpi-row{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px;}
+  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:18px;}
   .kpi-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px 16px;}
   .kpi-label{font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;}
   .kpi-value{font-family:var(--mono); font-weight:600; font-size:21px; margin-top:7px; display:inline-block; transition:transform .18s ease;}
   .kpi-value.bump{transform:scale(1.08) translateY(-2px);}
-  .kpi-value.recover{color:var(--recover);} .kpi-value.warn{color:var(--warn);} .kpi-value.danger{color:var(--danger);}
+  .kpi-value.recover{color:var(--recover);} .kpi-value.warn{color:var(--warn);} .kpi-value.danger{color:var(--danger);} .kpi-value.followup{color:#9B7EDE;}
 
   .overview-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:16px; align-items:start;}
   .source-banner{display:flex; align-items:center; gap:10px; padding:10px 16px; margin-bottom:14px; border-radius:10px; border:1px solid var(--border-soft); background:#0D1524; font-size:12px; color:var(--text-dim);}
@@ -142,6 +142,7 @@
   .badge.escalated{background:var(--warn-dim); color:var(--warn);}
   .badge.stopped{background:var(--danger-dim); color:var(--danger);}
   .badge.pending{background:var(--brand-dim); color:var(--brand);}
+  .badge.following_up{background:#9B7EDE22; color:#9B7EDE;}
   .empty-state{padding:50px 20px; text-align:center; color:var(--text-dim); font-size:13px;}
 
   .settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
@@ -220,6 +221,7 @@
       <div class="kpi-card"><div class="kpi-label">At risk</div><div class="kpi-value" id="kAtRisk">₹0</div></div>
       <div class="kpi-card"><div class="kpi-label">Recovered</div><div class="kpi-value recover" id="kRecovered">₹0</div></div>
       <div class="kpi-card"><div class="kpi-label">Recovery rate</div><div class="kpi-value" id="kRate">0%</div></div>
+      <div class="kpi-card"><div class="kpi-label">Following up</div><div class="kpi-value followup" id="kFollowup">0</div></div>
       <div class="kpi-card"><div class="kpi-label">Escalated</div><div class="kpi-value warn" id="kEscalated">0</div></div>
       <div class="kpi-card"><div class="kpi-label">Stopped by rule</div><div class="kpi-value danger" id="kStopped">0</div></div>
     </div>
@@ -301,6 +303,7 @@
       <div class="tabs" id="tabs">
         <div class="tab active" data-filter="all">All</div>
         <div class="tab" data-filter="recovered">Recovered</div>
+        <div class="tab" data-filter="following_up">Following up</div>
         <div class="tab" data-filter="escalated">Escalated</div>
         <div class="tab" data-filter="stopped">Stopped</div>
       </div>
@@ -591,10 +594,13 @@ function refreshRateChart(){
 function refreshOutcomeChart(){
   if(!CHARTS_READY) return;
   const recovered = TXNS.filter(t=>t.status==="recovered").length;
+  const followingUp = TXNS.filter(t=>t.status==="following_up").length;
   const escalated = TXNS.filter(t=>t.status==="escalated").length;
   const stopped = TXNS.filter(t=>t.status==="stopped").length;
   const pending = TXNS.filter(t=>t.status==="pending").length;
-  chartOutcome.data.datasets[0].data = [recovered, escalated, stopped, pending];
+  chartOutcome.data.labels = ['Recovered','Following up','Escalated','Stopped','Pending'];
+  chartOutcome.data.datasets[0].backgroundColor = [CHART_COLORS.recover, '#9B7EDE', CHART_COLORS.warn, CHART_COLORS.danger, CHART_COLORS.faint];
+  chartOutcome.data.datasets[0].data = [recovered, followingUp, escalated, stopped, pending];
   chartOutcome.update('none');
 }
 function refreshAllCharts(){ refreshCauseChart(); refreshRateChart(); refreshOutcomeChart(); }
@@ -724,8 +730,12 @@ async function resolveTransaction(t){
       pushTrendPoint(t.amount);
     } else if(t.retryCount >= getRules().maxRetries){
       t.status="stopped";
-      t.trail.push({ step:"acted", at:new Date(), detail:`${ACTION_LABEL[action]} executed — unresolved. Retry limit reached.`, msg:t.diagnosis.customer_message_hinglish||null });
+      t.trail.push({ step:"acted", at:new Date(), detail:`${ACTION_LABEL[action]} executed — unresolved after ${t.retryCount} touches. Retry limit reached, handing to human for final collection call.`, msg:t.diagnosis.customer_message_hinglish||null });
       logConsole(`${t.id} → stopped (retry limit)`, 'bad');
+    } else if(action==="send_reminder" || action==="retrigger_mandate"){
+      /* Not an instant dice roll — a real sequence: schedule the next touch instead of
+         resolving now. This is the mandate-retry-sequencer / promise-to-pay-tracker workflow. */
+      scheduleFollowUp(t, t.retryCount - 1, action);
     } else {
       t.status="escalated";
       t.trail.push({ step:"acted", at:new Date(), detail:`${ACTION_LABEL[action]} executed — no response yet, flagged for follow-up.`, msg:t.diagnosis.customer_message_hinglish||null });
@@ -733,6 +743,47 @@ async function resolveTransaction(t){
     }
   }
 }
+
+const FOLLOWUP_TIMING = ["in ~2 days", "in ~5 days", "in ~7 days"];
+function scheduleFollowUp(t, roundIndex, action){
+  const delayMs = 7000 + roundIndex*4000 + rand(0,2000); // spaced out, demo-scaled
+  const label = FOLLOWUP_TIMING[Math.min(roundIndex, FOLLOWUP_TIMING.length-1)];
+  const kind = t.type==="invoice_overdue" ? "payment promise" : action==="retrigger_mandate" ? "mandate retry" : "reminder follow-up";
+  t.status = "following_up";
+  t.followUpKind = kind;
+  t.followUpRound = roundIndex + 1;
+  t.nextCheckAt = Date.now() + delayMs;
+  t.trail.push({ step:"followup", at:new Date(), detail:`Scheduled ${kind} #${roundIndex+1} ${label} — customer given a window to respond before the next automated touch.`, msg:t.diagnosis.customer_message_hinglish||null });
+  logConsole(`${t.id} → follow-up #${roundIndex+1} scheduled (${kind})`, 'warn');
+}
+
+async function resolveFollowUp(t){
+  const p = successProbability(t.diagnosis.root_cause, t.action) * 0.85; // slightly lower on repeat touch
+  const success = Math.random() < p;
+  if(success){
+    t.status = "recovered";
+    t.trail.push({ step:"acted", at:new Date(), detail:`Customer responded to ${t.followUpKind} #${t.followUpRound} — payment completed.` });
+    logConsole(`${t.id} → <b>recovered</b> ${fmtINR(t.amount)} after ${t.followUpKind}`, 'ok');
+    pushTrendPoint(t.amount);
+  } else {
+    t.retryCount++;
+    if(t.retryCount >= getRules().maxRetries){
+      t.status = "stopped";
+      t.trail.push({ step:"acted", at:new Date(), detail:`No response after ${t.retryCount} touches (${t.followUpKind} sequence exhausted). Stopped by rule — handing to human for final collection call.` });
+      logConsole(`${t.id} → stopped after follow-up sequence`, 'bad');
+    } else {
+      scheduleFollowUp(t, t.retryCount, t.action);
+    }
+  }
+}
+
+setInterval(()=>{
+  const due = TXNS.filter(t=>t.status==="following_up" && t.nextCheckAt && t.nextCheckAt<=Date.now());
+  if(due.length===0) return;
+  due.forEach(t=>resolveFollowUp(t));
+  updateFunnel(); updateKPIs(); renderLedger(); refreshAllCharts();
+}, 1000);
+
 
 /* ============================= RENDER ============================= */
 function setEngineStatus(active){
@@ -762,12 +813,14 @@ function bump(id, text){
 function updateKPIs(){
   const atRisk = TXNS.reduce((s,t)=>s+t.amount,0);
   const recovered = TXNS.filter(t=>t.status==="recovered").reduce((s,t)=>s+t.amount,0);
+  const followingUp = TXNS.filter(t=>t.status==="following_up").length;
   const escalated = TXNS.filter(t=>t.status==="escalated").length;
   const stopped = TXNS.filter(t=>t.status==="stopped").length;
   const rate = atRisk>0 ? (recovered/atRisk*100) : 0;
   bump('kAtRisk', fmtINR(atRisk));
   bump('kRecovered', fmtINR(recovered));
   document.getElementById('kRate').textContent = rate.toFixed(1)+"%";
+  document.getElementById('kFollowup').textContent = followingUp;
   document.getElementById('kEscalated').textContent = escalated;
   document.getElementById('kStopped').textContent = stopped;
 }
@@ -792,7 +845,9 @@ function renderLedger(){
   if(TXNS.length===0){ ledger.innerHTML = '<div class="empty-state">No transactions yet. Start the live stream from Overview.</div>'; return; }
   if(filtered.length===0){ ledger.innerHTML = '<div class="empty-state">Nothing in this view yet.</div>'; return; }
   ledger.innerHTML = [...filtered].reverse().map(t=>{
-    const badge = t.status==="pending" ? '<span class="badge pending">In progress</span>' : `<span class="badge ${t.status}">${t.status[0].toUpperCase()+t.status.slice(1)}</span>`;
+    const badge = t.status==="pending" ? '<span class="badge pending">In progress</span>'
+      : t.status==="following_up" ? `<span class="badge following_up">Follow-up #${t.followUpRound}</span>`
+      : `<span class="badge ${t.status}">${t.status[0].toUpperCase()+t.status.slice(1)}</span>`;
     return `<div class="ledger-row" data-id="${t.id}">
       <div><div class="ledger-top"><span class="ledger-id">${t.id}</span><span class="ledger-name">${t.name}</span></div>
       <div class="ledger-reason">${t.label} · ${t.reason}</div></div>
@@ -801,7 +856,7 @@ function renderLedger(){
   ledger.querySelectorAll('.ledger-row').forEach(row=>row.addEventListener('click', ()=>openModal(row.dataset.id)));
 }
 
-const STEP_ICON = { detected:"◉", diagnosed:"◎", decided:"◈", acted:"✓" };
+const STEP_ICON = { detected:"◉", diagnosed:"◎", decided:"◈", followup:"⏱", acted:"✓" };
 function openModal(id){
   const t = TXNS.find(x=>x.id===id); if(!t) return;
   document.getElementById('modalId').textContent = t.id;
