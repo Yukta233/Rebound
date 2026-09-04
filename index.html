@@ -129,6 +129,9 @@
   .tabs{display:flex; gap:6px;}
   .tab{font-size:11.5px; padding:6px 12px; border-radius:100px; color:var(--text-dim); cursor:pointer; border:1px solid transparent; font-weight:500;}
   .tab.active{background:var(--brand-dim); color:var(--brand); border-color:#5B8CFF44;}
+  .export-bar{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .export-status{font-size:11.5px; color:var(--recover); opacity:0; transition:opacity 0.3s ease;}
+  .export-status.show{opacity:1;}
   .ledger{max-height:560px; overflow-y:auto;}
   .ledger-row{padding:12px 18px; border-bottom:1px solid var(--border-soft); display:grid; grid-template-columns:1fr auto auto; gap:6px; cursor:pointer; transition:background .15s ease;}
   .ledger-row:hover{background:#0D1524;}
@@ -307,6 +310,11 @@
         <div class="tab" data-filter="escalated">Escalated</div>
         <div class="tab" data-filter="stopped">Stopped</div>
       </div>
+    </div>
+    <div class="export-bar">
+      <button class="btn btn-ghost" id="exportLedgerBtn">⬇ Export ledger (CSV)</button>
+      <button class="btn btn-ghost" id="exportTrailBtn">⬇ Export audit trail (CSV)</button>
+      <span class="export-status" id="exportStatus"></span>
     </div>
     <div class="panel"><div class="ledger" id="ledger"><div class="empty-state">No transactions yet. Start the live stream from Overview.</div></div></div>
   </div>
@@ -855,6 +863,64 @@ function renderLedger(){
   }).join('');
   ledger.querySelectorAll('.ledger-row').forEach(row=>row.addEventListener('click', ()=>openModal(row.dataset.id)));
 }
+
+/* ============================= CSV EXPORT ============================= */
+function csvEscape(val){
+  if(val === null || val === undefined) return '';
+  const s = String(val);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function downloadCSV(filename, rows){
+  const csv = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+  // Leading BOM so Excel opens UTF-8 (₹ symbol, etc.) correctly instead of showing garbled characters.
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showExportStatus(`Downloaded ${filename}`);
+}
+function showExportStatus(msg){
+  const el = document.getElementById('exportStatus');
+  el.textContent = '✓ ' + msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3500);
+}
+function exportLedgerCSV(){
+  if(TXNS.length===0){ showExportStatus('Nothing to export yet — start a stream first.'); return; }
+  const header = ['Transaction ID','Loss Type','Customer / Business','Amount (INR)','Failure Reason','Root Cause','Confidence (%)','Recommended Action','Status','Follow-up Round','Retry Count','Detected At','Last Updated At'];
+  const rows = [header];
+  TXNS.forEach(t=>{
+    const lastStep = t.trail[t.trail.length-1];
+    rows.push([
+      t.id, t.label, t.name, t.amount, t.reason,
+      t.diagnosis ? t.diagnosis.root_cause.replace(/_/g,' ') : '',
+      t.diagnosis ? (t.diagnosis.confidence*100).toFixed(0) : '',
+      t.action ? (ACTION_LABEL[t.action]||t.action) : '',
+      t.status.replace(/_/g,' '),
+      t.followUpRound || '',
+      t.retryCount || 0,
+      t.trail[0] ? fmtTime(t.trail[0].at) : '',
+      lastStep ? fmtTime(lastStep.at) : ''
+    ]);
+  });
+  downloadCSV(`rebound-ledger-${Date.now()}.csv`, rows);
+}
+function exportTrailCSV(){
+  if(TXNS.length===0){ showExportStatus('Nothing to export yet — start a stream first.'); return; }
+  const header = ['Transaction ID','Step','Timestamp','Detail','Customer Message (if any)'];
+  const rows = [header];
+  TXNS.forEach(t=>{
+    t.trail.forEach(step=>{
+      rows.push([t.id, step.step, fmtTime(step.at), step.detail, step.msg || '']);
+    });
+  });
+  downloadCSV(`rebound-audit-trail-${Date.now()}.csv`, rows);
+}
+document.getElementById('exportLedgerBtn').addEventListener('click', exportLedgerCSV);
+document.getElementById('exportTrailBtn').addEventListener('click', exportTrailCSV);
 
 const STEP_ICON = { detected:"◉", diagnosed:"◎", decided:"◈", followup:"⏱", acted:"✓" };
 function openModal(id){
